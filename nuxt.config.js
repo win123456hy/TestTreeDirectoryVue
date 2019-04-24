@@ -37,7 +37,9 @@ export default {
   ** Plugins to load before mounting the App
   */
   plugins: [
-    '@/plugins/iview'
+    '@/plugins/iview',
+    '@/plugins/directive',
+    '@/plugins/vtippy',
   ],
 
   /*
