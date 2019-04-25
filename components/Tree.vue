@@ -273,7 +273,7 @@
         }
 
         this.CHANGE_TREE(this.copyTreeData);
-
+        this.menu = false
         this.$forceUpdate();
       },
 
