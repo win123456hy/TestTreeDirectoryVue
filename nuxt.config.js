@@ -40,6 +40,7 @@ export default {
     '@/plugins/iview',
     '@/plugins/directive',
     '@/plugins/vtippy',
+    '@/plugins/vClickOS',
   ],
 
   /*

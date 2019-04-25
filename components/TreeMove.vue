@@ -2,24 +2,24 @@
   <div style="display: flex; flex-direction: column;">
     <Tooltip v-if="tooltipText && node.isShow" :content="tooltipText" placement="right">
       <div v-if="!node.expand && node.isShow"
-           @click="showChild"
+           @click.stop="showChild"
            :class="isFileSelectedToMove || !isHaveChild ? 'disabled-item': ''"
            :style="fileStyle"
            style="padding: 5px">
         <Icon v-if="isHaveChild" type="md-folder" :size="30"/>
-        <Icon v-else type="ios-document" :size="30" @click="selectFile"/>
+        <Icon v-else type="ios-document" :size="30" @click.stop="selectFile"/>
         <span>{{node.label}}</span>
       </div>
     </Tooltip>
 
     <div v-else>
       <div v-if="!node.expand && node.isShow"
-           @click="showChild"
+           @click.stop="showChild"
            :class="isFileSelectedToMove || !isHaveChild ? 'disabled-item': ''"
            :style="fileStyle"
            style="padding: 5px">
         <Icon v-if="isHaveChild" type="md-folder" :size="30"/>
-        <Icon v-else type="ios-document" :size="30" @click="selectFile"/>
+        <Icon v-else type="ios-document" :size="30"/>
         <span>{{node.label}}</span>
       </div>
     </div>

@@ -14,13 +14,13 @@
 
     </div>
 
-    <div v-if="isShowMove" class="popup" :style="movePosition">
+    <div v-click-outside="onClickOutside" v-if="isShowMove" class="popup" :style="movePosition">
       <div style="display: flex; justify-content: space-between">
         <div style="display: flex">
           <Icon v-if="arraySourceMove.length !== 1"
                 type="md-arrow-round-back"
                 size="20"
-                @click="collapseTree"/>
+                @click.stop="collapseTree"/>
           Src: {{arraySourceMove[arraySourceMove.length - 1]}}
         </div>
         <Icon type="md-close-circle"  @click="isShowMove = false"/>
@@ -40,7 +40,7 @@
 
     <div v-click-outside="closeMenu">
       <ul id="right-click-menu" tabindex="-1" ref="right" v-if="menu" :style="{top:top, left:left}">
-        <li @click="showTreeMove()">
+        <li @click.stop="showTreeMove">
           <Icon type="md-move"
                 :size="30"/>
           Move to
@@ -58,11 +58,15 @@
   import {mapGetters, mapMutations} from "vuex"
   import TreeMove from "./TreeMove"
   import _ from "lodash"
+  import vClickOutside from 'v-click-outside'
 
   export default {
     name: "node",
     components: {
       TreeMove
+    },
+    directives: {
+      clickOutside: vClickOutside.directive
     },
     props: {
       node: {
@@ -171,6 +175,9 @@
         'COLLAPSE_TREE_MOVE',
         'SET_SOURCE_MOVE',
         'SET_CLICK_MOVE']),
+      onClickOutside(){
+        this.isShowMove = false
+      },
       goToFolder(label) {
         this.copyTreeData = this.treeData;
 
@@ -261,9 +268,9 @@
       },
 
       showTreeMove() {
-        this.SET_SOURCE_MOVE(this.sourceData)
         this.menu = false
         this.isShowMove = true
+        this.SET_SOURCE_MOVE(this.sourceData)
       },
 
       remove() {
