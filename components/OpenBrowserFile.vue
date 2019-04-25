@@ -1,51 +1,33 @@
 <template>
   <div>
     <div style="display: flex;">
-      <div>
+      <div style="display: flex">
+        <Icon v-if="arraySource.length !== 1"
+              type="md-arrow-round-back"
+              size="20"
+              @click="collapseTree"/>
         Src:
         <span v-for="(item, index) in arraySource"
               class="hover-underline" @click="goToFolder(item)">{{item}}/</span>
       </div>
-      <Icon v-if="arraySource.length !== 1" type="ios-arrow-dropleft" size="20" @click="collapseTree"/>
-      <Icon type="md-add-circle" size="20" @click="openAddFolder"/>
+
+      <Icon type="md-add-circle"
+            size="20"
+            @click="openAddFolder"
+            style="margin-left: 200px"/>
 
       <Modal
         v-model="modal"
         title="Add folder"
         footer-hide>
-        <Input v-model="inputAddFolder" placeholder="Enter name folder"/>
+        <Input v-model="inputAddFolder" placeholder="Enter name folder" style="margin-bottom: 15px"/>
         <Button type="primary"  @click="addFolder">Add</Button>
       </Modal>
     </div>
 
     <div>
-      <Tree :node="treeData" :space="0" style="padding: 20px 0px"/>
+      <Tree :node="treeData" :space="10" style="padding: 20px 0px"/>
     </div>
-
-
-
-    <!--<Modal-->
-    <!--ref="right"-->
-    <!--@blur="closeMenu"-->
-    <!--v-model="modal"-->
-    <!--title="Choose file"-->
-    <!--:style="{top:top, left:left}"-->
-    <!--footer-hide>-->
-    <!--<div style="display: flex; justify-content: space-between">-->
-    <!--<div>-->
-    <!--Src:-->
-    <!--<span v-for="(item, index) in arraySource"-->
-    <!--class="hover-underline" @click="goToFolder(item)">{{item}}/</span>-->
-    <!--</div>-->
-    <!--<Icon type="ios-arrow-dropleft" size="20" @click="collapseTree"/>-->
-    <!--</div>-->
-    <!--<Tree :node="treeData" :space="0" style="padding: 20px 0px"/>-->
-
-    <!--<div style="display: flex; justify-content: flex-end">-->
-    <!--<Button style="margin-right: 10px" @click="modal = false">Cancel</Button>-->
-    <!--<Button type="primary" v-if="sourceData" @click="getFile">Get source</Button>-->
-    <!--</div>-->
-    <!--</Modal>-->
   </div>
 </template>
 
@@ -66,23 +48,29 @@
       }
     },
     computed: {
-      ...mapGetters(['sourceData', 'treeData', 'fileSelectedData']),
+      ...mapGetters(['sourceData', 'sourceMoveData', 'treeData', 'fileSelectedData']),
       arraySource() {
         return this.sourceData.split("/").filter(item => {
           return item && item !== ""
         })
+      },
+      arraySourceMove() {
+        return this.sourceMoveData.split("/").filter(item => {
+          return item && item !== ""
+        })
       }
     },
+
     methods: {
       ...mapMutations(['ADD_TREE', 'COLLAPSE_TREE', 'CHANGE_TREE']),
       goToFolder(label) {
-        if(label !== this.arraySource[this.arraySource.length - 1]){
+         if(label !== this.arraySource[this.arraySource.length - 1]){
           for (let i = this.arraySource.length; i > this.arraySource.indexOf(label); i--) {
             this.copyTreeData = this.treeData;
 
             this.setCollapse(this.copyTreeData, this.arraySource[i])
-            this.CHANGE_TREE(this.copyTreeData)
             this.COLLAPSE_TREE(this.arraySource[i]);
+            this.CHANGE_TREE(this.copyTreeData)
           }
         }
       },
@@ -114,7 +102,8 @@
             label: labelNewFolder,
             expand: false,
             isShow: true,
-            children: []
+            children: [],
+            isSelected: false
           })
         }
         if (item.children && item.children.length > 0) {
@@ -136,6 +125,17 @@
         }
       },
 
+      setExpand(item, label) {
+        if (item.children && item.label && item.label === label) {
+          item.expand = true
+        }
+        if (item.children && item.children.length > 0) {
+          for (let i = 0; i < item.children.length; i++) {
+            this.setExpand(item.children[i], label)
+          }
+        }
+      },
+
       getFile() {
         let fileSelectedData = ""
         this.fileSelectedData.forEach(o => {
@@ -146,7 +146,7 @@
         } else {
           this.$Message.info(`File selected: <br>${fileSelectedData}`)
         }
-      }
+      },
     }
   }
 </script>

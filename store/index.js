@@ -23,6 +23,7 @@ const state = () => ({
               label: "Folder3",
               isShow: true,
               isSelected: false,
+              expand: false,
               children: [{label: "file 3", isShow: true, isSelected: false,}, {label: "file 4", isShow: true, isSelected: false,}]
             }],
           },
@@ -36,7 +37,8 @@ const state = () => ({
   source: "root/",
   sourceMove: "root/",
   fileSelected: [],
-  fileSelectedMove: []
+  fileSelectedMove: [],
+  isClickMove: false
 });
 
 const getters = {
@@ -58,9 +60,9 @@ const getters = {
   fileSelectedMoveData(state) {
     return _.uniq(state.fileSelectedMove)
   },
-  modal(state) {
-    return state.modal
-  }
+  isMoved(state) {
+    return state.isClickMove
+  },
 };
 
 const mutations = {
@@ -106,6 +108,9 @@ const mutations = {
   },
   SET_SOURCE_MOVE(state,data){
     state.sourceMove = data
+  },
+  SET_CLICK_MOVE(state,data){
+    state.isClickMove = data
   }
 };
 

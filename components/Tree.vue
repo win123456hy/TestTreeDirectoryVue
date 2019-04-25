@@ -1,48 +1,38 @@
 <template>
   <div style="display: flex; flex-direction: row;">
-    <div v-right-click-outside="closeMenu"
+    <div v-right-click-outside="closeAll"
          v-if="!node.expand && node.isShow"
          @dblclick="showChild"
+         @click="selectFile($event,false)"
          @contextmenu.prevent="openMenu($event)"
          :ref="`nodeitem${node.label}`"
          :style="fileStyle"
-         style="padding: 5px">
-      <Icon v-if="isHaveChild" type="md-folder" :size="30" @click="selectFile"/>
-      <Icon v-else type="ios-document" :size="30" @click="selectFile"/>
-      <span>{{node.label}}</span>
+         style="display: flex; align-items: center; padding: 5px; width: 100px; border: solid 1px black; border-radius: 4px">
+      <Icon v-if="isHaveChild" type="md-folder" :size="30"/>
+      <Icon v-else type="ios-document" :size="30"/>
+      <div style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; width: 50px; height: 20px">{{node.label}}</div>
 
     </div>
 
-    <div id="popup1" class="popup" :style="computedStyle">
-      <div>
-        Src:
-        <span v-for="(item, index) in arraySourceMove"
-              class="hover-underline"
-              @click="goToFolder(item)">{{item}}/</span>
+    <div v-if="isShowMove" class="popup" :style="movePosition">
+      <div style="display: flex; justify-content: space-between">
+        <div style="display: flex">
+          <Icon v-if="arraySourceMove.length !== 1"
+                type="md-arrow-round-back"
+                size="20"
+                @click="collapseTree"/>
+          Src: {{arraySourceMove[arraySourceMove.length - 1]}}
+        </div>
+        <Icon type="md-close-circle"  @click="isShowMove = false"/>
       </div>
-      <!--<Icon v-if="arraySource.length !== 1" type="ios-arrow-dropleft" size="20" @click="collapseTree"/>-->
+
       <TreeMove :node="treeMoveData" :space="0" style="padding: 20px 0px; overflow: auto"/>
       <Button v-if="sourceMoveData !== sourceData" type="primary" @click="moveItem">Move</Button>
     </div>
 
-    <a href="#" class="close-popup"></a>
-    <!--<div v-click-outside="closeMoveModal">-->
-    <!--<div v-if="isShowMove" class="move-modal" ref="moveModal" :style="{top:top, left:left}">-->
-    <!--<div>-->
-    <!--Src:-->
-    <!--<span v-for="(item, index) in arraySourceMove"-->
-    <!--class="hover-underline"-->
-    <!--@click="goToFolder(item)">{{item}}/</span>-->
-    <!--</div>-->
-    <!--&lt;!&ndash;<Icon v-if="arraySource.length !== 1" type="ios-arrow-dropleft" size="20" @click="collapseTree"/>&ndash;&gt;-->
-    <!--<TreeMove :node="treeMoveData" :space="0" style="padding: 20px 0px; overflow: auto"/>-->
-    <!--<Button v-if="sourceMoveData !== sourceData" type="primary" @click="moveItem">Move</Button>-->
-    <!--</div>-->
-    <!--</div>-->
-
     <node v-if="node.expand && isHaveChild"
           v-for="(item, index) in node.children"
-          :style="{marginLeft: `${space}px`}"
+          :style="index !== 0 ? {marginLeft: `${space}px`} : {}"
           :node="item"
           :space="space"
           :key="index">
@@ -51,12 +41,9 @@
     <div v-click-outside="closeMenu">
       <ul id="right-click-menu" tabindex="-1" ref="right" v-if="menu" :style="{top:top, left:left}">
         <li @click="showTreeMove()">
-          <!--<a href="#popup1" class="btn"-->
-          <!--@click="showTreeMove()">-->
           <Icon type="md-move"
                 :size="30"/>
           Move to
-          <!--</a>-->
         </li>
         <li @click="remove">
           <Icon type="md-trash" :size="30"/>
@@ -64,21 +51,6 @@
         </li>
       </ul>
     </div>
-
-    <!--<Modal-->
-    <!--v-model="isShowMove"-->
-    <!--title="Move"-->
-    <!--footer-hide>-->
-    <!--<div>-->
-    <!--Src:-->
-    <!--<span v-for="(item, index) in arraySourceMove"-->
-    <!--class="hover-underline"-->
-    <!--@click="goToFolder(item)">{{item}}/</span>-->
-    <!--</div>-->
-    <!--&lt;!&ndash;<Icon v-if="arraySource.length !== 1" type="ios-arrow-dropleft" size="20" @click="collapseTree"/>&ndash;&gt;-->
-    <!--<TreeMove :node="treeMoveData" :space="0" style="padding: 20px 0px; overflow: auto"/>-->
-    <!--<Button v-if="sourceMoveData !== sourceData" type="primary" @click="moveItem">Move</Button>-->
-    <!--</Modal>-->
   </div>
 </template>
 
@@ -100,7 +72,7 @@
       space: {
         type: Number,
         required: false,
-      }
+      },
     },
     mounted() {
       this.isMounted = true
@@ -115,12 +87,13 @@
         left: '0px',
         menu: false,
         isShowMove: false,
-        isMounted: false
+        isMounted: false,
+        nodeSelect: {}
       }
     },
     computed: {
-      ...mapGetters(['sourceData', 'sourceMoveData', 'treeData', 'treeMoveData']),
-      computedXY() {
+      ...mapGetters(['sourceData', 'sourceMoveData', 'treeData', 'treeMoveData','fileSelectedData','isMoved']),
+      nodePostion() {
         if (this.isMounted && this.$refs[`nodeitem${this.node.label}`]) {
           return {
             top: this.$refs[`nodeitem${this.node.label}`].getBoundingClientRect().top,
@@ -132,10 +105,10 @@
           left: 0
         }
       },
-      computedStyle(){
+      movePosition(){
         return {
-          top: this.computedXY.top + 'px',
-          left: this.computedXY.left + 'px',
+          top: (this.nodePostion.top + 50) + 'px',
+          left: (this.nodePostion.left) + 'px',
         }
       },
       arraySource() {
@@ -159,6 +132,11 @@
       }
     },
     watch: {
+      isMoved(){
+        if(this.isMoved){
+          this.goToFolder(this.arraySourceMove[this.arraySourceMove.length - 1])
+        }
+      },
       sourceData() {
         if (!this.sourceData || this.sourceData.length === 0) {
           this.copyTreeData = this.treeData;
@@ -191,12 +169,43 @@
         'CHANGE_TREE_MOVE',
         'COLLAPSE_TREE',
         'COLLAPSE_TREE_MOVE',
-        'SET_SOURCE_MOVE']),
+        'SET_SOURCE_MOVE',
+        'SET_CLICK_MOVE']),
+      goToFolder(label) {
+        this.copyTreeData = this.treeData;
+
+        if(this.arraySource.indexOf(label) < 0){
+          for (let i = 0; i < this.arraySourceMove.length; i++) {
+            this.setExpand(this.copyTreeData,this.arraySourceMove[i])
+            let isExistSource = this.arraySource.find(o =>{
+              return o === this.arraySourceMove[i]
+            })
+            if(!isExistSource){
+              this.APPEND_SOURCE(this.arraySourceMove[i] + "/");
+            }
+          }
+          this.CHANGE_TREE(this.copyTreeData)
+          this.RESET_FILE_SELECTED();
+          this.SET_CLICK_MOVE(false)
+        }else if(label !== this.arraySource[this.arraySource.length - 1]){
+          for (let i = this.arraySource.length; i > this.arraySource.indexOf(label); i--) {
+            this.setCollapse(this.copyTreeData, this.arraySource[i])
+            this.COLLAPSE_TREE(this.arraySource[i]);
+            this.CHANGE_TREE(this.copyTreeData)
+          }
+          this.SET_CLICK_MOVE(false)
+        }
+      },
+      closeAll() {
+        this.menu = false;
+        this.isShowMove = false
+      },
       closeMenu() {
         this.menu = false;
       },
       showChild() {
         this.copyTreeData = this.treeData;
+        this.isShowMove = false;
 
         this.setExpand(this.copyTreeData, this.node.label);
         this.CHANGE_TREE(this.copyTreeData);
@@ -207,12 +216,12 @@
       },
 
       openMenu(e) {
-        this.selectFile();
+        this.selectFile(e,true);
         this.menu = true;
+        this.isShowMove = false;
 
         this.$nextTick(function () {
           this.$refs.right.focus;
-
           this.setMenu(e.y, e.x)
         }.bind(this));
       },
@@ -228,26 +237,20 @@
         this.top = top + 'px';
         this.left = left + 'px';
       },
-      setMoveModal(top, left) {
-        let largestHeight = window.innerHeight - this.$refs.nodeitem.offsetHeight - 200;
-        let largestWidth = window.innerWidth - this.$refs.nodeitem.offsetWidth - 200;
 
-        if (top > largestHeight) top = largestHeight;
-
-        if (left > largestWidth) left = largestWidth;
-
-        this.top = top + 'px';
-        this.left = left + 'px';
-        console.log("this.top", this.top);
-        console.log("this.left", this.left);
-      },
-
-      selectFile(event) {
+      selectFile(event,isRightClick) {
         this.copyTreeData = this.treeData
-        this.setSelected(this.copyTreeData, this.node.label, !this.node.isSelected)
-        if (event && !event.ctrlKey) {
+        if (event && !event.ctrlKey && !isRightClick) {
+          this.RESET_FILE_SELECTED();
           this.setUnSelected(this.copyTreeData, this.node.label)
         }
+
+        if(!isRightClick){
+          this.setSelected(this.copyTreeData, this.node.label, !this.node.isSelected)
+        }else {
+          this.setSelected(this.copyTreeData, this.node.label, true)
+        }
+
         this.CHANGE_TREE(this.copyTreeData);
 
         if (this.node.isSelected) {
@@ -260,12 +263,14 @@
       showTreeMove() {
         this.SET_SOURCE_MOVE(this.sourceData)
         this.menu = false
-        location.href = "#popup1"
+        this.isShowMove = true
       },
 
       remove() {
         this.copyTreeData = this.treeData;
-        this.removeItem(this.copyTreeData, this.arraySource[this.arraySource.length - 1], this.node.label);
+        for (let i = 0; i < this.fileSelectedData.length; i++) {
+          this.removeItem(this.copyTreeData, this.arraySource[this.arraySource.length - 1], this.fileSelectedData[i]);
+        }
 
         this.CHANGE_TREE(this.copyTreeData);
 
@@ -275,9 +280,35 @@
       moveItem() {
         this.copyTreeData = this.treeData;
 
-        this.doMove(this.copyTreeData, this.arraySourceMove[this.arraySourceMove.length - 1], this.node);
-        this.removeItem(this.copyTreeData, this.arraySource[this.arraySource.length - 1], this.node.label);
+        for (let i = 0; i < this.fileSelectedData.length; i++) {
+            this.getNodeFromTree(this.copyTreeData,this.fileSelectedData[i])
+            this.doMove(
+              this.copyTreeData,
+              this.arraySourceMove[this.arraySourceMove.length - 1],
+              this.nodeSelect
+            );
+            this.removeItem(
+              this.copyTreeData,
+              this.arraySource[this.arraySource.length - 1],
+              this.fileSelectedData[i]
+            );
+        }
         this.CHANGE_TREE(this.copyTreeData);
+
+        this.isShowMove = false
+        this.SET_CLICK_MOVE(true)
+      },
+
+      getNodeFromTree(item, label){
+        if (item.label && item.label === label) {
+          this.nodeSelect = item
+        } else {
+          if (item.children && item.children.length > 0) {
+            for (let i = 0; i < item.children.length; i++) {
+              this.getNodeFromTree(item.children[i], label)
+            }
+          }
+        }
       },
 
       doMove(item, directory, node) {
@@ -291,25 +322,17 @@
           }
         }
       },
-      goToFolder(label) {
-        if (label !== this.arraySourceMove[this.arraySourceMove.length - 1]) {
-          for (let i = this.arraySourceMove.length; i > this.arraySourceMove.indexOf(label); i--) {
-            this.copyTreeData = this.treeMoveData;
-
-            this.setCollapse(this.copyTreeData, this.arraySourceMove[i])
-            this.CHANGE_TREE_MOVE(this.copyTreeData)
-            this.COLLAPSE_TREE_MOVE(this.arraySourceMove[i]);
-          }
-        }
-      },
 
       removeItem(item, label, removelabel) {
-        if (item.children && item.children.length > 0 && item.label && item.label === label && item.children.find(o => {
-          return o.label === removelabel
-        })) {
-          item.children = item.children.filter(o => {
-            return o.label !== removelabel
+        if (item.children && item.children.length > 0 && item.label && item.label === label) {
+          let haveItemToMove = item.children.find(o => {
+            return o.label === removelabel
           })
+          if(haveItemToMove){
+            item.children = item.children.filter(o => {
+              return o.label !== removelabel
+            })
+          }
         }
         if (item.children && item.children.length > 0) {
           for (let i = 0; i < item.children.length; i++) {
@@ -381,6 +404,13 @@
           }
         }
       },
+      collapseTree() {
+        this.copyTreeData = this.treeMoveData;
+
+        this.setCollapse(this.copyTreeData, this.arraySourceMove[this.arraySourceMove.length - 1])
+        this.CHANGE_TREE_MOVE(this.copyTreeData)
+        this.COLLAPSE_TREE_MOVE(`${this.arraySourceMove[this.arraySourceMove.length - 1]}/`);
+      },
     }
   }
 </script>
@@ -414,7 +444,7 @@
     padding: 0;
     position: absolute;
     width: 250px;
-    z-index: 999999;
+    z-index: 999;
   }
 
   #right-click-menu li {
@@ -435,17 +465,10 @@
   .popup {
     position: fixed;
     padding: 10px;
-    max-width: 500px;
+    min-width: 150px;
     border: solid 1px black;
-    background: rgba(255, 255, 255, .9);
-    visibility: hidden;
-    opacity: 0;
-    /* "delay" the visibility transition */
-    -webkit-transition: opacity 0s, visibility 0s linear 0s;
-    transition: opacity 0s, visibility 0s linear 0s;
-    z-index: 1;
+    z-index: 9999;
   }
-
   .popup:after, .popup:before {
     bottom: 100%;
     left: 50%;
@@ -463,42 +486,13 @@
     border-width: 10px;
     margin-left: -10px;
   }
-
   .popup:before {
     border-color: rgba(194, 225, 245, 0);
     border-bottom-color: black;
-    border-width: 11px;
-    margin-left: -11px;
+    border-width: 10px;
+    margin-left: -10px;
   }
-
-  .popup:target {
-    visibility: visible;
-    opacity: 1;
-    /* cancel visibility transition delay */
-    -webkit-transition-delay: 0s;
-    transition-delay: 0s;
-  }
-
-  .close-popup {
-    background: rgba(0, 0, 0, 0);
-    cursor: default;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    opacity: 0;
-    visibility: hidden;
-    /* "delay" the visibility transition */
-    -webkit-transition: opacity 0s, visibility 0s linear 0s;
-    transition: opacity 0s, visibility 0s linear 0s;
-  }
-
-  .popup:target + .close-popup {
-    opacity: 1;
-    visibility: visible;
-    /* cancel visibility transition delay */
-    -webkit-transition-delay: 0s;
-    transition-delay: 0s;
-  }
+  /*.popup:not(:target){*/
+    /*display: none;*/
+  /*}*/
 </style>

@@ -1,6 +1,6 @@
 <template>
   <div style="display: flex; flex-direction: column;">
-    <Tooltip v-if="tooltipText" :content="tooltipText" placement="right" max-width="400">
+    <Tooltip v-if="tooltipText && node.isShow" :content="tooltipText" placement="right">
       <div v-if="!node.expand && node.isShow"
            @click="showChild"
            :class="isFileSelectedToMove || !isHaveChild ? 'disabled-item': ''"
