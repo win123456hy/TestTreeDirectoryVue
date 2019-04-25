@@ -1,17 +1,19 @@
 <template>
-  <div style="display: flex; flex-direction: row;">
+  <div style="display: flex;" :style="{flexDirection: direction}">
     <div v-right-click-outside="closeAll"
-         v-if="!node.expand && node.isShow"
+         v-if="!node.expand && node.isShow && node.label"
          @dblclick="showChild"
          @click="selectFile($event,false)"
          @contextmenu.prevent="openMenu($event)"
          :ref="`nodeitem${node.label}`"
          :style="fileStyle"
+         :class="node.isMoving ? 'animate-node':''"
          style="display: flex; align-items: center; padding: 5px; width: 100px; border: solid 1px black; border-radius: 4px">
       <Icon v-if="isHaveChild" type="md-folder" :size="30"/>
       <Icon v-else type="ios-document" :size="30"/>
-      <div style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; width: 50px; height: 20px">{{node.label}}</div>
-
+      <div style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; width: 50px; height: 20px">
+        {{node.label}}
+      </div>
     </div>
 
     <div v-click-outside="onClickOutside" v-if="isShowMove" class="popup" :style="movePosition">
@@ -23,17 +25,20 @@
                 @click.stop="collapseTree"/>
           Src: {{arraySourceMove[arraySourceMove.length - 1]}}
         </div>
-        <Icon type="md-close-circle"  @click="isShowMove = false"/>
+        <Icon type="md-close-circle" @click="isShowMove = false"/>
       </div>
 
       <TreeMove :node="treeMoveData" :space="0" style="padding: 20px 0px; overflow: auto"/>
       <Button v-if="sourceMoveData !== sourceData" type="primary" @click="moveItem">Move</Button>
     </div>
 
+    <!--:style="computedSpace(index)"-->
+
     <node v-if="node.expand && isHaveChild"
           v-for="(item, index) in node.children"
-          :style="index !== 0 ? {marginLeft: `${space}px`} : {}"
           :node="item"
+          :style="computedSpace(index)"
+          :direction="direction"
           :space="space"
           :key="index">
     </node>
@@ -43,7 +48,7 @@
       title="Rename"
       footer-hide>
       <Input v-model="inputRename" placeholder="Enter new name" style="margin-bottom: 15px"/>
-      <Button type="primary"  @click="rename">Rename</Button>
+      <Button type="primary" @click="rename">Rename</Button>
     </Modal>
 
     <div v-click-outside="closeMenu">
@@ -90,6 +95,11 @@
         type: Number,
         required: false,
       },
+      direction: {
+        type: String,
+        required: false,
+        default: 'row'
+      }
     },
     mounted() {
       this.isMounted = true
@@ -111,7 +121,7 @@
       }
     },
     computed: {
-      ...mapGetters(['sourceData', 'sourceMoveData', 'treeData', 'treeMoveData','fileSelectedData','isMoved']),
+      ...mapGetters(['sourceData', 'sourceMoveData', 'treeData', 'treeMoveData', 'fileSelectedData', 'isMoved']),
       nodePostion() {
         if (this.isMounted && this.$refs[`nodeitem${this.node.label}`]) {
           return {
@@ -124,7 +134,7 @@
           left: 0
         }
       },
-      movePosition(){
+      movePosition() {
         return {
           top: (this.nodePostion.top + 50) + 'px',
           left: (this.nodePostion.left) + 'px',
@@ -148,11 +158,23 @@
           background: "skyblue",
           color: "white"
         } : ""
-      }
+      },
     },
     watch: {
-      isMoved(){
-        if(this.isMoved){
+      node: {
+        handler: function (newValue) {
+          if (newValue.isMoving) {
+            setTimeout(() => {
+              this.copyTreeData = this.treeData;
+              this.changeMoving(this.copyTreeData)
+              this.CHANGE_TREE(this.copyTreeData);
+            }, 1000)
+          }
+        },
+        deep: true
+      },
+      isMoved() {
+        if (this.isMoved) {
           this.goToFolder(this.arraySourceMove[this.arraySourceMove.length - 1])
         }
       },
@@ -190,11 +212,23 @@
         'COLLAPSE_TREE_MOVE',
         'SET_SOURCE_MOVE',
         'SET_CLICK_MOVE']),
-      onClickRename(){
+      computedSpace(index) {
+        if (index !== 0) {
+          if (this.direction === 'row') {
+            return {marginLeft: `${this.space}px`}
+          }
+          if (this.direction === 'column') {
+            return {marginTop: `${this.space}px`}
+          }
+        }
+        return {}
+      },
+
+      onClickRename() {
         this.modalRename = true;
       },
 
-      rename(){
+      rename() {
         this.copyTreeData = this.treeData;
         this.modalRename = false;
 
@@ -202,7 +236,7 @@
         this.CHANGE_TREE(this.copyTreeData);
       },
 
-      doRename(item, label, newName){
+      doRename(item, label, newName) {
         if (item.label && item.label === label) {
           item.label = newName
         } else {
@@ -214,26 +248,26 @@
         }
       },
 
-      onClickOutside(){
+      onClickOutside() {
         this.isShowMove = false
       },
       goToFolder(label) {
         this.copyTreeData = this.treeData;
 
-        if(this.arraySource.indexOf(label) < 0){
+        if (this.arraySource.indexOf(label) < 0) {
           for (let i = 0; i < this.arraySourceMove.length; i++) {
-            this.setExpand(this.copyTreeData,this.arraySourceMove[i])
-            let isExistSource = this.arraySource.find(o =>{
+            this.setExpand(this.copyTreeData, this.arraySourceMove[i])
+            let isExistSource = this.arraySource.find(o => {
               return o === this.arraySourceMove[i]
             })
-            if(!isExistSource){
+            if (!isExistSource) {
               this.APPEND_SOURCE(this.arraySourceMove[i] + "/");
             }
           }
           this.CHANGE_TREE(this.copyTreeData)
           this.RESET_FILE_SELECTED();
           this.SET_CLICK_MOVE(false)
-        }else if(label !== this.arraySource[this.arraySource.length - 1]){
+        } else if (label !== this.arraySource[this.arraySource.length - 1]) {
           for (let i = this.arraySource.length; i > this.arraySource.indexOf(label); i--) {
             this.setCollapse(this.copyTreeData, this.arraySource[i])
             this.COLLAPSE_TREE(this.arraySource[i]);
@@ -262,7 +296,7 @@
       },
 
       openMenu(e) {
-        this.selectFile(e,true);
+        this.selectFile(e, true);
         this.menu = true;
         this.isShowMove = false;
 
@@ -284,7 +318,7 @@
         this.left = left + 'px';
       },
 
-      selectFile(event,isRightClick) {
+      selectFile(event, isRightClick) {
         this.copyTreeData = this.treeData
         if (event && !event.ctrlKey && !isRightClick) {
           this.RESET_FILE_SELECTED();
@@ -292,9 +326,9 @@
         }
 
 
-        if(!isRightClick){
+        if (!isRightClick) {
           this.setSelected(this.copyTreeData, this.node.label, !this.node.isSelected)
-        }else {
+        } else {
           this.setSelected(this.copyTreeData, this.node.label, true)
         }
 
@@ -328,17 +362,17 @@
         this.copyTreeData = this.treeData;
 
         for (let i = 0; i < this.fileSelectedData.length; i++) {
-            this.getNodeFromTree(this.copyTreeData,this.fileSelectedData[i])
-            this.doMove(
-              this.copyTreeData,
-              this.arraySourceMove[this.arraySourceMove.length - 1],
-              this.nodeSelect
-            );
-            this.removeItem(
-              this.copyTreeData,
-              this.arraySource[this.arraySource.length - 1],
-              this.fileSelectedData[i]
-            );
+          this.getNodeFromTree(this.copyTreeData, this.fileSelectedData[i])
+          this.doMove(
+            this.copyTreeData,
+            this.arraySourceMove[this.arraySourceMove.length - 1],
+            this.nodeSelect
+          );
+          this.removeItem(
+            this.copyTreeData,
+            this.arraySource[this.arraySource.length - 1],
+            this.fileSelectedData[i]
+          );
         }
         this.CHANGE_TREE(this.copyTreeData);
 
@@ -346,7 +380,7 @@
         this.SET_CLICK_MOVE(true)
       },
 
-      getNodeFromTree(item, label){
+      getNodeFromTree(item, label) {
         if (item.label && item.label === label) {
           this.nodeSelect = item
         } else {
@@ -360,6 +394,7 @@
 
       doMove(item, directory, node) {
         if (item.children && item.label && item.label === directory) {
+          node.isMoving = true
           item.children.push(node)
         } else {
           if (item.children && item.children.length > 0) {
@@ -370,15 +405,29 @@
         }
       },
 
+      changeMoving(item) {
+        if (item.label) {
+          item.isMoving = false
+        }
+        if (item.children && item.children.length > 0) {
+          for (let i = 0; i < item.children.length; i++) {
+            this.changeMoving(item.children[i])
+          }
+        }
+      },
+
       removeItem(item, label, removelabel) {
         if (item.children && item.children.length > 0 && item.label && item.label === label) {
           let haveItemToMove = item.children.find(o => {
             return o.label === removelabel
           })
-          if(haveItemToMove){
+          if (haveItemToMove) {
             item.children = item.children.filter(o => {
               return o.label !== removelabel
             })
+          }
+          if (item.children.length === 0) {
+            item.children = [{}]
           }
         }
         if (item.children && item.children.length > 0) {
@@ -516,6 +565,7 @@
     border: solid 1px black;
     z-index: 9999;
   }
+
   .popup:after, .popup:before {
     bottom: 100%;
     left: 50%;
@@ -533,13 +583,27 @@
     border-width: 10px;
     margin-left: -10px;
   }
+
   .popup:before {
     border-color: rgba(194, 225, 245, 0);
     border-bottom-color: black;
     border-width: 10px;
     margin-left: -10px;
   }
-  /*.popup:not(:target){*/
-    /*display: none;*/
-  /*}*/
+
+  @keyframes example {
+    from {
+      transform: scale(0.5);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
+
+  /* The element to apply the animation to */
+  .animate-node {
+    background-color: white;
+    animation-name: example;
+    animation-duration: 1s;
+  }
 </style>

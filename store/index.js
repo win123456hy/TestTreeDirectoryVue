@@ -7,30 +7,34 @@ const state = () => ({
     expand: true,
     isShow: false,
     isSelected: false,
+    isMoving: false,
     children: [
       {
         label: "Folder 1",
         expand: false,
         isShow: true,
         isSelected: false,
+        isMoving: false,
         children: [
           {
             label: "Folder 2",
             expand: false,
             isShow: true,
             isSelected: false,
-            children: [{label: "file 2", isShow: true, isSelected: false,}, {
+            isMoving: false,
+            children: [{label: "file 2", isShow: true, isSelected: false,isMoving: false,}, {
               label: "Folder3",
               isShow: true,
               isSelected: false,
+              isMoving: false,
               expand: false,
-              children: [{label: "file 3", isShow: true, isSelected: false,}, {label: "file 4", isShow: true, isSelected: false,}]
+              children: [{label: "file 3", isShow: true, isSelected: false,isMoving: false,}, {label: "file 4", isShow: true, isSelected: false,isMoving: false,}]
             }],
           },
-          {label: "Folder 4", isShow: true, expand: false,isSelected: false, children: []}
+          {label: "Folder 4", isShow: true, expand: false,isSelected: false,isMoving: false, children: [{}]}
         ]
       },
-      {label: "file 1", isShow: true, isSelected: false,}
+      {label: "file 1", isShow: true, isSelected: false,isMoving: false,}
     ],
   },
   treeMove: {},
@@ -70,7 +74,7 @@ const mutations = {
     state.treeMove = data;
   },
   CHANGE_TREE(state, data) {
-    state.tree = data;
+    state.tree = data
   },
   APPEND_SOURCE(state, data) {
     state.source += data;

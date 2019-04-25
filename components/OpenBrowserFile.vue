@@ -26,7 +26,10 @@
     </div>
 
     <div v-click-outside="clearFileSelected">
-      <Tree :node="treeData" :space="10" style="padding: 20px 0px"/>
+      <Tree :node="treeData"
+            :space="10"
+            direction="column"
+            style="padding: 20px 0px"/>
     </div>
   </div>
 </template>
@@ -119,22 +122,26 @@
         this.CHANGE_TREE(this.copyTreeData)
 
         this.modal = false
-        this.$forceUpdate();
       },
 
       createFolder(item,label,labelNewFolder){
-        if (item.label && item.label === label) {
+        if (item.children && item.label && item.label === label) {
           item.children.push({
             label: labelNewFolder,
             expand: false,
             isShow: true,
-            children: [],
-            isSelected: false
+            isSelected: false,
+            isMoving: false,
+            children: [{}],
           })
-        }
-        if (item.children && item.children.length > 0) {
-          for (let i = 0; i < item.children.length; i++) {
-            this.createFolder(item.children[i], label,labelNewFolder)
+          item.children = item.children.filter(o=>{
+            return o.label
+          })
+        }else {
+          if (item.children && item.children.length > 0) {
+            for (let i = 0; i < item.children.length; i++) {
+              this.createFolder(item.children[i], label,labelNewFolder)
+            }
           }
         }
       },
