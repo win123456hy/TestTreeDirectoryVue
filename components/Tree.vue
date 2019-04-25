@@ -38,12 +38,25 @@
           :key="index">
     </node>
 
+    <Modal
+      v-model="modalRename"
+      title="Rename"
+      footer-hide>
+      <Input v-model="inputRename" placeholder="Enter new name" style="margin-bottom: 15px"/>
+      <Button type="primary"  @click="rename">Rename</Button>
+    </Modal>
+
     <div v-click-outside="closeMenu">
       <ul id="right-click-menu" tabindex="-1" ref="right" v-if="menu" :style="{top:top, left:left}">
         <li @click.stop="showTreeMove">
           <Icon type="md-move"
                 :size="30"/>
           Move to
+        </li>
+        <li @click.stop="onClickRename">
+          <Icon type="md-create"
+                :size="30"/>
+          Rename
         </li>
         <li @click="remove">
           <Icon type="md-trash" :size="30"/>
@@ -92,7 +105,9 @@
         menu: false,
         isShowMove: false,
         isMounted: false,
-        nodeSelect: {}
+        nodeSelect: {},
+        inputRename: "",
+        modalRename: false
       }
     },
     computed: {
@@ -175,6 +190,30 @@
         'COLLAPSE_TREE_MOVE',
         'SET_SOURCE_MOVE',
         'SET_CLICK_MOVE']),
+      onClickRename(){
+        this.modalRename = true;
+      },
+
+      rename(){
+        this.copyTreeData = this.treeData;
+        this.modalRename = false;
+
+        this.doRename(this.copyTreeData, this.node.label, this.inputRename)
+        this.CHANGE_TREE(this.copyTreeData);
+      },
+
+      doRename(item, label, newName){
+        if (item.label && item.label === label) {
+          item.label = newName
+        } else {
+          if (item.children && item.children.length > 0) {
+            for (let i = 0; i < item.children.length; i++) {
+              this.doRename(item.children[i], label, newName)
+            }
+          }
+        }
+      },
+
       onClickOutside(){
         this.isShowMove = false
       },
@@ -251,6 +290,7 @@
           this.RESET_FILE_SELECTED();
           this.setUnSelected(this.copyTreeData, this.node.label)
         }
+
 
         if(!isRightClick){
           this.setSelected(this.copyTreeData, this.node.label, !this.node.isSelected)

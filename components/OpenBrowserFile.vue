@@ -25,7 +25,7 @@
       </Modal>
     </div>
 
-    <div>
+    <div v-click-outside="clearFileSelected">
       <Tree :node="treeData" :space="10" style="padding: 20px 0px"/>
     </div>
   </div>
@@ -34,12 +34,18 @@
 <script>
   import Tree from "./Tree"
   import {mapGetters, mapMutations} from "vuex"
+  import vClickOutside from 'v-click-outside'
 
   export default {
     name: "open-browser-file",
     components: {
       Tree
     },
+
+    directives: {
+      clickOutside: vClickOutside.directive
+    },
+
     data() {
       return {
         inputAddFolder: "",
@@ -47,6 +53,7 @@
         copyTreeData: [],
       }
     },
+
     computed: {
       ...mapGetters(['sourceData', 'sourceMoveData', 'treeData', 'fileSelectedData']),
       arraySource() {
@@ -62,7 +69,26 @@
     },
 
     methods: {
-      ...mapMutations(['ADD_TREE', 'COLLAPSE_TREE', 'CHANGE_TREE']),
+      ...mapMutations(['ADD_TREE', 'COLLAPSE_TREE', 'CHANGE_TREE','RESET_FILE_SELECTED']),
+      clearFileSelected(){
+        this.RESET_FILE_SELECTED();
+        this.copyTreeData = this.treeData;
+
+        this.cleartIsSelected(this.copyTreeData)
+        this.CHANGE_TREE(this.copyTreeData)
+      },
+
+      cleartIsSelected(item) {
+        if (item.label) {
+          item.isSelected = false
+        }
+        if (item.children && item.children.length > 0) {
+          for (let i = 0; i < item.children.length; i++) {
+            this.cleartIsSelected(item.children[i])
+          }
+        }
+      },
+
       goToFolder(label) {
          if(label !== this.arraySource[this.arraySource.length - 1]){
           for (let i = this.arraySource.length; i > this.arraySource.indexOf(label); i--) {
