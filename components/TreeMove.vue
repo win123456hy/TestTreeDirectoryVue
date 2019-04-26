@@ -1,14 +1,14 @@
 <template>
-  <div style="display: flex; flex-direction: column;">
+  <div style="display: flex; flex-direction: column;" :style="{flexDirection: direction, ...computedSpace($vnode.key)}">
     <Tooltip v-if="tooltipText && node.isShow" :content="tooltipText" placement="right">
-      <div v-if="!node.expand && node.isShow"
+      <div v-if="!node.expand && node.isShow && node.label"
            @click.stop="showChild"
            :class="isFileSelectedToMove || !isHaveChild ? 'disabled-item': ''"
-           :style="fileStyle"
+           :style="{...csNode,...fileStyle}"
            style="padding: 5px">
         <Icon v-if="isHaveChild" type="md-folder" :size="30"/>
         <Icon v-else type="ios-document" :size="30" @click.stop="selectFile"/>
-        <span>{{node.label}}</span>
+        <span style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; width: 50px; height: 20px">{{node.label}}</span>
       </div>
     </Tooltip>
 
@@ -16,19 +16,20 @@
       <div v-if="!node.expand && node.isShow"
            @click.stop="showChild"
            :class="isFileSelectedToMove || !isHaveChild ? 'disabled-item': ''"
-           :style="fileStyle"
+           :style="{...csNode,...fileStyle}"
            style="padding: 5px">
         <Icon v-if="isHaveChild" type="md-folder" :size="30"/>
         <Icon v-else type="ios-document" :size="30"/>
-        <span>{{node.label}}</span>
+        <span style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; width: 50px; height: 20px">{{node.label}}</span>
       </div>
     </div>
 
     <NodeMove v-if="node.expand && isHaveChild"
           v-for="(item, index) in node.children"
-          :style="{marginLeft: `${space}px`}"
           :node="item"
+          :direction="direction"
           :space="space"
+          :cs-node="csNode"
           :key="index">
     </NodeMove>
   </div>
@@ -47,6 +48,25 @@
       space: {
         type: Number,
         required: false,
+      },
+      direction: {
+        type: String,
+        required: false,
+        default: 'row'
+      },
+      csNode:{
+        type: Object,
+        required: false,
+        default(){
+          return {
+            display: 'flex',
+            alignItems: 'center',
+            padding: '5px',
+            width: '100px',
+            border: 'solid 1px black',
+            borderRadius: '4px'
+          }
+        }
       }
     },
     data() {
@@ -116,7 +136,16 @@
         'SELECT_FILE_MOVE',
         'UNSELECT_FILE_MOVE',
         'RESET_FILE_SELECTED_MOVE']),
-
+      computedSpace(index) {
+        if (index !== 0 && this.node.isShow) {
+          if (this.direction === 'row') {
+            return {marginLeft: `${this.space}px`}
+          }
+          if (this.direction === 'column') {
+            return {marginTop: `${this.space}px`}
+          }
+        }
+      },
       showChild() {
         this.copyTreeData = this.treeMoveData;
 

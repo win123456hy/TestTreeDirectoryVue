@@ -1,14 +1,13 @@
 <template>
-  <div style="display: flex;" :style="{flexDirection: direction}">
+  <div style="display: flex;" :style="{flexDirection: direction, ...computedSpace($vnode.key)}">
     <div v-right-click-outside="closeAll"
          v-if="!node.expand && node.isShow && node.label"
          @dblclick="showChild"
          @click="selectFile($event,false)"
          @contextmenu.prevent="openMenu($event)"
          :ref="`nodeitem${node.label}`"
-         :style="fileStyle"
-         :class="node.isMoving ? 'animate-node':''"
-         style="display: flex; align-items: center; padding: 5px; width: 100px; border: solid 1px black; border-radius: 4px">
+         :style="{...csNode,...fileStyle}"
+         :class="node.isMoving ? 'animate-node':''">
       <Icon v-if="isHaveChild" type="md-folder" :size="30"/>
       <Icon v-else type="ios-document" :size="30"/>
       <div style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; width: 50px; height: 20px">
@@ -28,18 +27,16 @@
         <Icon type="md-close-circle" @click="isShowMove = false"/>
       </div>
 
-      <TreeMove :node="treeMoveData" :space="0" style="padding: 20px 0px; overflow: auto"/>
+      <TreeMove :node="treeMoveData" :space="10" direction="column" style="padding: 20px 0px; overflow: auto"/>
       <Button v-if="sourceMoveData !== sourceData" type="primary" @click="moveItem">Move</Button>
     </div>
-
-    <!--:style="computedSpace(index)"-->
 
     <node v-if="node.expand && isHaveChild"
           v-for="(item, index) in node.children"
           :node="item"
-          :style="computedSpace(index)"
           :direction="direction"
           :space="space"
+          :cs-node="csNode"
           :key="index">
     </node>
 
@@ -99,6 +96,20 @@
         type: String,
         required: false,
         default: 'row'
+      },
+      csNode:{
+        type: Object,
+        required: false,
+        default(){
+         return {
+           display: 'flex',
+           alignItems: 'center',
+           padding: '5px',
+           width: '100px',
+           border: 'solid 1px black',
+           borderRadius: '4px'
+         }
+        }
       }
     },
     mounted() {
@@ -157,7 +168,7 @@
         return this.node.isSelected ? {
           background: "skyblue",
           color: "white"
-        } : ""
+        } : {}
       },
     },
     watch: {
@@ -213,7 +224,7 @@
         'SET_SOURCE_MOVE',
         'SET_CLICK_MOVE']),
       computedSpace(index) {
-        if (index !== 0) {
+        if (index !== 0 && this.node.isShow) {
           if (this.direction === 'row') {
             return {marginLeft: `${this.space}px`}
           }
@@ -559,6 +570,7 @@
   }
 
   .popup {
+    background: white;
     position: fixed;
     padding: 10px;
     min-width: 150px;
